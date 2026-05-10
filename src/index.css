@@ -162,15 +162,6 @@ button {
   opacity: 0.3;
   box-shadow: 0 0 15px rgba(255,255,255,0.4);
 }
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  opacity: 0.9;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  animation: blinkText 1.5s infinite;
-}
 
-@keyframes blinkText {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
+/* Global styles for status badges and alerts moved to ui.css or handled here */
 
