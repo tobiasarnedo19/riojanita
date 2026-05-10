@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatReceiptAmount } from '../utils/formatters';
 
 // Función auxiliar para fecha corta
 const formatDateSimple = (date) => {
@@ -12,34 +12,30 @@ const createReciboHTML = (liq, empName) => {
   return `
     <div style="width: 230px; padding: 8px; background-color: white; font-family: Arial, sans-serif; color: #333; line-height: 1.1; box-sizing: border-box;">
       <div style="border: 1px solid #333; padding: 6px; height: 135px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
-        <div style="display: flex; justify-content: flex-end; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 5px;">
-          <div style="text-align: right; font-size: 7px; font-weight: bold;">FECHA: ${formatDateSimple(new Date())}</div>
-        </div>
         <div style="margin-bottom: 5px;">
           <div style="font-size: 10px; font-weight: bold; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${empName}</div>
-          <div style="font-size: 7px; color: #666;">${liq.fecha}</div>
         </div>
         <div style="font-size: 8px; flex-grow: 1;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-            <span>${liq.total_horas} (${formatCurrency(liq.valor_hora)})</span>
-            <span>${formatCurrency(liq.total_horas * liq.valor_hora)}</span>
+            <span>${liq.total_horas}</span>
+            <span>${formatReceiptAmount(liq.total_horas * liq.valor_hora)}</span>
           </div>
           ${parseFloat(liq.feriados) > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 2px; color: green;">
             <span>Feriados:</span>
-            <span>+${formatCurrency(liq.feriados)}</span>
+            <span>+${formatReceiptAmount(liq.feriados)}</span>
           </div>
           ` : ''}
           ${parseFloat(liq.vales_anticipos) > 0 ? `
           <div style="display: flex; justify-content: space-between; color: #d32f2f;">
             <span>Vales/Ant:</span>
-            <span>-${formatCurrency(liq.vales_anticipos)}</span>
+            <span>-${formatReceiptAmount(liq.vales_anticipos)}</span>
           </div>
           ` : ''}
         </div>
         <div style="background-color: #333; color: white; padding: 4px; border-radius: 2px; text-align: right; margin-top: 4px;">
           <div style="font-size: 7px; text-transform: uppercase; opacity: 0.9; font-weight: bold;">TOTAL</div>
-          <div style="font-size: 13px; font-weight: 800;">${formatCurrency(liq.total)}</div>
+          <div style="font-size: 13px; font-weight: 800;">${formatReceiptAmount(liq.total)}</div>
         </div>
       </div>
     </div>

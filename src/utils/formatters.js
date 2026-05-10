@@ -19,3 +19,11 @@ export const formatNumber = (number) => {
   
   return new Intl.NumberFormat('en-US').format(number);
 };
+/**
+ * Formatea un número redondeado y sin separadores (solo para el recibo).
+ * Ejemplo: 1500.50 -> 1501
+ */
+export const formatReceiptAmount = (number) => {
+  if (number === undefined || number === null || isNaN(number)) return '0';
+  return Math.round(number).toString();
+};

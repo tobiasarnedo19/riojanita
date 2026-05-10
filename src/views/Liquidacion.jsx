@@ -2,17 +2,13 @@ import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { api } from '../services/api';
 import { generateReciboPDF, generatePlanillaPDF } from '../services/pdfService';
 import { DataContext } from '../context/DataContext';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatReceiptAmount } from '../utils/formatters';
 import gsap from 'gsap';
 import '../components/ui/ui.css';
 import { Save, Trash2, CheckSquare, Plus, X, ArrowRight, Eye, Check, FileDown, FileText, Download } from 'lucide-react';
 
 // Componente para la Vista Previa del Recibo Individual (Estilo Ticket 6x4)
 const ReciboPreview = ({ liq, empName, onDownload, onClose }) => {
-  const formatDateSimple = (date) => {
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear().toString().substr(-2)}`;
-  };
-
   return (
     <div className="modal-overlay" style={{ zIndex: 1100 }}>
       <div className="modal-content" style={{ maxWidth: '350px', padding: '1.5rem' }}>
@@ -28,34 +24,30 @@ const ReciboPreview = ({ liq, empName, onDownload, onClose }) => {
             fontFamily: 'Arial, sans-serif', color: '#333', lineHeight: '1.1', boxSizing: 'border-box',
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderBottom: '1px solid #ddd', paddingBottom: '4px', marginBottom: '5px' }}>
-              <div style={{ textAlign: 'right', fontSize: '7px', fontWeight: 'bold' }}>FECHA: {formatDateSimple(new Date())}</div>
-            </div>
             <div style={{ marginBottom: '5px' }}>
               <div style={{ fontSize: '10px', fontWeight: 'bold', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{empName}</div>
-              <div style={{ fontSize: '7px', color: '#666' }}>{liq.fecha}</div>
             </div>
             <div style={{ fontSize: '8px', flexGrow: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                <span>{liq.total_horas} ({formatCurrency(liq.valor_hora)})</span>
-                <span>{formatCurrency(liq.total_horas * liq.valor_hora)}</span>
+                <span>{liq.total_horas}</span>
+                <span>{formatReceiptAmount(liq.total_horas * liq.valor_hora)}</span>
               </div>
               {parseFloat(liq.feriados) > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', color: 'green' }}>
                   <span>Feriados:</span>
-                  <span>+{formatCurrency(liq.feriados)}</span>
+                  <span>+{formatReceiptAmount(liq.feriados)}</span>
                 </div>
               )}
               {parseFloat(liq.vales_anticipos) > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#d32f2f' }}>
                   <span>Vales/Ant:</span>
-                  <span>-{formatCurrency(liq.vales_anticipos)}</span>
+                  <span>-{formatReceiptAmount(liq.vales_anticipos)}</span>
                 </div>
               )}
             </div>
             <div style={{ backgroundColor: '#333', color: 'white', padding: '4px', borderRadius: '2px', textAlign: 'right', marginTop: '4px' }}>
-              <div style={{ fontSize: '7px', textTransform: 'uppercase', opacity: 0.9, fontWeight: 'bold' }}>TOTAL</div>
-              <div style={{ fontSize: '13px', fontWeight: '800' }}>{formatCurrency(liq.total)}</div>
+              <div style={{ font_size: '7px', text_transform: 'uppercase', opacity: 0.9, fontWeight: 'bold' }}>TOTAL</div>
+              <div style={{ fontSize: '13px', fontWeight: '800' }}>{formatReceiptAmount(liq.total)}</div>
             </div>
           </div>
         </div>
@@ -97,9 +89,9 @@ const PlanillaPreview = ({ planilla, getEmpName, onDownload, onClose }) => {
               }}>
                 <div style={{ borderBottom: '1px solid #eee', paddingBottom: '2px', fontWeight: 'bold' }}>{getEmpName(liq.empelado)}</div>
                 <div style={{ flexGrow: 1, paddingTop: '4px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Haberes</span><span>{formatCurrency(liq.total)}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Haberes</span><span>{formatReceiptAmount(liq.total)}</span></div>
                 </div>
-                <div style={{ backgroundColor: '#f0f0f0', textAlign: 'right', padding: '2px' }}>TOTAL: {formatCurrency(liq.total)}</div>
+                <div style={{ backgroundColor: '#f0f0f0', textAlign: 'right', padding: '2px' }}>TOTAL: {formatReceiptAmount(liq.total)}</div>
               </div>
             ))}
           </div>
