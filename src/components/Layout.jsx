@@ -10,6 +10,7 @@ import './Layout.css';
 export default function Layout({ children }) {
   const { user, logout } = useContext(AuthContext);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
     { path: '/liquidacion', icon: <LayoutDashboard size={20} />, label: 'Liquidaciones' },
@@ -18,9 +19,28 @@ export default function Layout({ children }) {
     { path: '/novedades', icon: <ClipboardList size={20} />, label: 'Novedades' },
   ];
 
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
   return (
     <div className={`layout-container ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      {/* Mobile Header (Skill Pattern 4) */}
+      <header className="mobile-header">
+        <button className="menu-trigger" onClick={toggleMobileMenu}>
+          <ClipboardList size={24} />
+        </button>
+        <div className="mobile-brand">
+          <img src="/minilogo.png" alt="Riojanita" height="30" />
+          <span>Riojanita</span>
+        </div>
+        <button className="mobile-logout" onClick={logout}>
+          <LogOut size={20} />
+        </button>
+      </header>
+
+      {/* Overlay for mobile */}
+      {isMobileMenuOpen && <div className="mobile-overlay-bg" onClick={toggleMobileMenu} />}
+
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-brand">
           <div className="logo-container">
             <img 

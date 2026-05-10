@@ -395,7 +395,7 @@ export default function Liquidacion() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="view-header">
         <h2>Planillas de Liquidación</h2>
         <button className="btn btn-primary" onClick={() => {
           setError(null);
@@ -408,48 +408,88 @@ export default function Liquidacion() {
 
       {(globalError || error) && <div className="alert alert-error">{globalError || error}</div>}
 
-      <div className="card table-container">
+      <div className="card" style={{ padding: '0', background: 'none', boxShadow: 'none' }}>
         {planillas.length === 0 ? (
           <p>No hay planillas registradas.</p>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Fecha Lote</th>
-                <th>Período</th>
-                <th>Cant. Empleados</th>
-                <th>Total a Liquidar</th>
-                <th>Estado General</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="desktop-table card" style={{ padding: '2rem' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Fecha Lote</th>
+                    <th>Período</th>
+                    <th>Cant. Empleados</th>
+                    <th>Total a Liquidar</th>
+                    <th>Estado General</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {planillas.map(p => (
+                    <tr key={p.id}>
+                      <td>{formatDate(p.timestamp)}</td>
+                      <td>{p.periodo}</td>
+                      <td>{p.empleados.length}</td>
+                      <td style={{ fontWeight: 'bold' }}>{formatCurrency(p.total)}</td>
+                      <td>
+                        <span className="status-badge" style={{ 
+                          backgroundColor: p.estado === 'PENDIENTE' ? '#fef3c7' : p.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
+                          color: p.estado === 'PENDIENTE' ? '#d97706' : p.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
+                        }}>
+                          {p.estado}
+                        </span>
+                      </td>
+                      <td style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setSelectedPlanilla(p)}>
+                          <Eye size={14} /> Detalle
+                        </button>
+                        <button className="btn btn-secondary" style={{ fontSize: '0.75rem', color: 'var(--color-primary)' }} title="Vista Previa Planilla" onClick={() => setPreviewPlanilla(p)}>
+                          <FileText size={14} /> PDF A4
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mobile-cards">
               {planillas.map(p => (
-                <tr key={p.id}>
-                  <td>{formatDate(p.timestamp)}</td>
-                  <td>{p.periodo}</td>
-                  <td>{p.empleados.length}</td>
-                  <td style={{ fontWeight: 'bold' }}>{formatCurrency(p.total)}</td>
-                  <td>
+                <div key={p.id} className="card-item">
+                  <div className="card-row">
+                    <span className="card-label">Fecha Lote</span>
+                    <span className="card-value">{formatDate(p.timestamp)}</span>
+                  </div>
+                  <div className="card-row">
+                    <span className="card-label">Período</span>
+                    <span className="card-value" style={{ fontWeight: '600' }}>{p.periodo}</span>
+                  </div>
+                  <div className="card-row">
+                    <span className="card-label">Total</span>
+                    <span className="card-value" style={{ fontWeight: '800', color: 'var(--color-primary)' }}>{formatCurrency(p.total)}</span>
+                  </div>
+                  <div className="card-row">
+                    <span className="card-label">Estado</span>
                     <span className="status-badge" style={{ 
                       backgroundColor: p.estado === 'PENDIENTE' ? '#fef3c7' : p.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
                       color: p.estado === 'PENDIENTE' ? '#d97706' : p.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
                     }}>
                       {p.estado}
                     </span>
-                  </td>
-                  <td style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setSelectedPlanilla(p)}>
-                      <Eye size={14} /> Detalle
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedPlanilla(p)}>
+                      <Eye size={16} /> Detalle
                     </button>
-                    <button className="btn btn-secondary" style={{ fontSize: '0.75rem', color: 'var(--color-primary)' }} title="Vista Previa Planilla" onClick={() => setPreviewPlanilla(p)}>
-                      <FileText size={14} /> PDF A4
+                    <button className="btn btn-secondary" style={{ flex: 1, color: 'var(--color-primary)' }} onClick={() => setPreviewPlanilla(p)}>
+                      <FileText size={16} /> PDF A4
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -467,66 +507,122 @@ export default function Liquidacion() {
               </button>
             </div>
 
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Empleado</th>
-                    <th>Horas</th>
-                    <th>Valor Hora</th>
-                    <th>Adicionales</th>
-                    <th>Total</th>
-                    <th>Estado</th>
-                    <th style={{ textAlign: 'center' }}>Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedPlanilla.empleados.map(liq => (
-                    <tr key={liq.id}>
-                      <td>{getEmpName(liq.empelado)}</td>
-                      <td>{liq.total_horas}h</td>
-                      <td>{formatCurrency(liq.valor_hora)}</td>
-                      <td>
-                        <span style={{ color: 'var(--color-success)', fontSize: '0.8rem' }}>+{formatCurrency(liq.feriados)}</span> / 
-                        <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem' }}>-{formatCurrency(liq.vales_anticipos)}</span>
-                      </td>
-                      <td style={{ fontWeight: 'bold' }}>{formatCurrency(liq.total)}</td>
-                      <td>
-                        <span className="status-badge" style={{ 
-                          backgroundColor: liq.estado === 'PENDIENTE' ? '#fef3c7' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
-                          color: liq.estado === 'PENDIENTE' ? '#d97706' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
-                        }}>
-                          {liq.estado}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
-                          {liq.estado === 'PENDIENTE' && (
-                            <button className="btn btn-primary" style={{ fontSize: '0.65rem', padding: '4px 8px', whiteSpace: 'nowrap' }} 
-                              onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR ADMINISTRACION' })}>
-                              Aprobar Admin
-                            </button>
-                          )}
-                          {liq.estado === 'CONTROLADO POR ADMINISTRACION' && (
-                            <button className="btn btn-primary" style={{ backgroundColor: '#2563eb', fontSize: '0.65rem', padding: '4px 8px', whiteSpace: 'nowrap' }} 
-                              onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR GERENCIA' })}>
-                              Aprobar Gerencia
-                            </button>
-                          )}
-                          {liq.estado !== 'PENDIENTE' && (
-                            <button className="btn btn-secondary" style={{ padding: '4px', color: 'var(--color-primary)' }} title="Vista Previa Recibo" onClick={() => setPreviewLiq(liq)}>
-                              <Eye size={18} />
-                            </button>
-                          )}
-                          {liq.estado === 'CONTROLADO POR GERENCIA' && (
-                            <Check size={16} style={{ color: 'var(--color-success)' }} />
-                          )}
-                        </div>
-                      </td>
+            <div style={{ marginTop: '1rem' }}>
+              <div className="desktop-table">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Empleado</th>
+                      <th>Horas</th>
+                      <th>Valor Hora</th>
+                      <th>Adicionales</th>
+                      <th>Total</th>
+                      <th>Estado</th>
+                      <th style={{ textAlign: 'center' }}>Acción</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {selectedPlanilla.empleados.map(liq => (
+                      <tr key={liq.id}>
+                        <td>{getEmpName(liq.empelado)}</td>
+                        <td>{liq.total_horas}h</td>
+                        <td>{formatCurrency(liq.valor_hora)}</td>
+                        <td>
+                          <span style={{ color: 'var(--color-success)', fontSize: '0.8rem' }}>+{formatCurrency(liq.feriados)}</span> / 
+                          <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem' }}>-{formatCurrency(liq.vales_anticipos)}</span>
+                        </td>
+                        <td style={{ fontWeight: 'bold' }}>{formatCurrency(liq.total)}</td>
+                        <td>
+                          <span className="status-badge" style={{ 
+                            backgroundColor: liq.estado === 'PENDIENTE' ? '#fef3c7' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
+                            color: liq.estado === 'PENDIENTE' ? '#d97706' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
+                          }}>
+                            {liq.estado}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
+                            {liq.estado === 'PENDIENTE' && (
+                              <button className="btn btn-primary" style={{ fontSize: '0.65rem', padding: '4px 8px', whiteSpace: 'nowrap' }} 
+                                onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR ADMINISTRACION' })}>
+                                Aprobar Admin
+                              </button>
+                            )}
+                            {liq.estado === 'CONTROLADO POR ADMINISTRACION' && (
+                              <button className="btn btn-primary" style={{ backgroundColor: '#2563eb', fontSize: '0.65rem', padding: '4px 8px', whiteSpace: 'nowrap' }} 
+                                onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR GERENCIA' })}>
+                                Aprobar Gerencia
+                              </button>
+                            )}
+                            {liq.estado !== 'PENDIENTE' && (
+                              <button className="btn btn-secondary" style={{ padding: '4px', color: 'var(--color-primary)' }} title="Vista Previa Recibo" onClick={() => setPreviewLiq(liq)}>
+                                <Eye size={18} />
+                              </button>
+                            )}
+                            {liq.estado === 'CONTROLADO POR GERENCIA' && (
+                              <Check size={16} style={{ color: 'var(--color-success)' }} />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mobile-cards">
+                {selectedPlanilla.empleados.map(liq => (
+                  <div key={liq.id} className="card-item">
+                    <div className="card-row">
+                      <span className="card-label">Empleado</span>
+                      <span className="card-value" style={{ fontWeight: '700' }}>{getEmpName(liq.empelado)}</span>
+                    </div>
+                    <div className="card-row">
+                      <span className="card-label">Horas</span>
+                      <span className="card-value">{liq.total_horas}h ({formatCurrency(liq.valor_hora)})</span>
+                    </div>
+                    <div className="card-row">
+                      <span className="card-label">Adicionales</span>
+                      <span className="card-value">
+                        <span style={{ color: 'var(--color-success)' }}>+{formatCurrency(liq.feriados)}</span> / 
+                        <span style={{ color: 'var(--color-danger)' }}>-{formatCurrency(liq.vales_anticipos)}</span>
+                      </span>
+                    </div>
+                    <div className="card-row">
+                      <span className="card-label">Total</span>
+                      <span className="card-value" style={{ fontWeight: '800', fontSize: '1.1rem' }}>{formatCurrency(liq.total)}</span>
+                    </div>
+                    <div className="card-row">
+                      <span className="card-label">Estado</span>
+                      <span className="status-badge" style={{ 
+                        backgroundColor: liq.estado === 'PENDIENTE' ? '#fef3c7' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
+                        color: liq.estado === 'PENDIENTE' ? '#d97706' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
+                      }}>
+                        {liq.estado}
+                      </span>
+                    </div>
+                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                      {liq.estado === 'PENDIENTE' && (
+                        <button className="btn btn-primary" style={{ flex: 1 }} 
+                          onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR ADMINISTRACION' })}>
+                          Aprobar Admin
+                        </button>
+                      )}
+                      {liq.estado === 'CONTROLADO POR ADMINISTRACION' && (
+                        <button className="btn btn-primary" style={{ flex: 1, backgroundColor: '#2563eb' }} 
+                          onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR GERENCIA' })}>
+                          Aprobar Gerencia
+                        </button>
+                      )}
+                      {liq.estado !== 'PENDIENTE' && (
+                        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setPreviewLiq(liq)}>
+                          <Eye size={18} /> Ver Recibo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

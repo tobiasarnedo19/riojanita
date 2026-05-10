@@ -68,46 +68,77 @@ export default function Empleados() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="view-header">
         <h2>Empleados Activos</h2>
         <button className="btn btn-primary" onClick={() => openModal()}>
-          <Plus size={18} /> Nuevo Empleado
+          <Plus size={18} /> <span className="hidden-mobile">Nuevo Empleado</span>
         </button>
       </div>
 
       {(globalError || error) && <div className="alert alert-error">{globalError || error}</div>}
 
-      <div className="card table-container">
+      <div className="card" style={{ padding: '0', background: 'none', boxShadow: 'none' }}>
         {empleados.length === 0 ? (
           <p>No hay empleados registrados.</p>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>DNI</th>
-                <th>Categoría</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="desktop-table card" style={{ padding: '2rem' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>DNI</th>
+                    <th>Categoría</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {empleados.map(emp => (
+                    <tr key={emp.id}>
+                      <td>{emp.nombre}</td>
+                      <td>{emp.dni}</td>
+                      <td>{getCatName(emp.categoria)}</td>
+                      <td style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-secondary" onClick={() => openModal(emp)}>
+                          <Edit2 size={16} />
+                        </button>
+                        <button className="btn btn-secondary" style={{ color: 'var(--color-danger)' }} onClick={() => handleDelete(emp.id)}>
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mobile-cards">
               {empleados.map(emp => (
-                <tr key={emp.id}>
-                  <td>{emp.nombre}</td>
-                  <td>{emp.dni}</td>
-                  <td>{getCatName(emp.categoria)}</td>
-                  <td style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-secondary" onClick={() => openModal(emp)}>
-                      <Edit2 size={16} />
+                <div key={emp.id} className="card-item">
+                  <div className="card-row">
+                    <span className="card-label">Nombre</span>
+                    <span className="card-value" style={{ fontWeight: '700' }}>{emp.nombre}</span>
+                  </div>
+                  <div className="card-row">
+                    <span className="card-label">DNI</span>
+                    <span className="card-value">{emp.dni}</span>
+                  </div>
+                  <div className="card-row">
+                    <span className="card-label">Categoría</span>
+                    <span className="card-value">{getCatName(emp.categoria)}</span>
+                  </div>
+                  <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => openModal(emp)}>
+                      <Edit2 size={16} /> Editar
                     </button>
-                    <button className="btn btn-secondary" style={{ color: 'var(--color-danger)' }} onClick={() => handleDelete(emp.id)}>
-                      <Trash2 size={16} />
+                    <button className="btn btn-secondary" style={{ flex: 1, color: 'var(--color-danger)' }} onClick={() => handleDelete(emp.id)}>
+                      <Trash2 size={16} /> Eliminar
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 

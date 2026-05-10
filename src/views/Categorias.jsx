@@ -62,46 +62,70 @@ export default function Categorias() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="view-header">
         <h2>Categorías y Valores</h2>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="view-actions">
           <button className="btn btn-secondary" onClick={() => setIsHistoryOpen(true)}>
-            <History size={18} /> Ver Historial
+            <History size={18} /> <span className="hidden-mobile">Ver Historial</span>
           </button>
           <button className="btn btn-primary" onClick={() => openModal()}>
-            <Plus size={18} /> Nueva Categoría
+            <Plus size={18} /> <span className="hidden-mobile">Nueva Categoría</span>
           </button>
         </div>
       </div>
 
       {(globalError || error) && <div className="alert alert-error">{globalError || error}</div>}
 
-      <div className="card table-container">
+      <div className="card" style={{ padding: '0', background: 'none', boxShadow: 'none' }}>
         {categorias.length === 0 ? (
           <p>No hay categorías registradas.</p>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Categoría</th>
-                <th>Valor Hora ($)</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="desktop-table card" style={{ padding: '2rem' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Categoría</th>
+                    <th>Valor Hora ($)</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categorias.map(cat => (
+                    <tr key={cat.id}>
+                      <td>{cat.categoria}</td>
+                      <td style={{ fontWeight: '600' }}>{formatCurrency(cat.valor_hora)}</td>
+                      <td>
+                        <button className="btn btn-secondary" onClick={() => openModal(cat)}>
+                          <Edit2 size={16} /> Editar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mobile-cards">
               {categorias.map(cat => (
-                <tr key={cat.id}>
-                  <td>{cat.categoria}</td>
-                  <td style={{ fontWeight: '600' }}>{formatCurrency(cat.valor_hora)}</td>
-                  <td>
-                    <button className="btn btn-secondary" onClick={() => openModal(cat)}>
-                      <Edit2 size={16} /> Editar
+                <div key={cat.id} className="card-item">
+                  <div className="card-row">
+                    <span className="card-label">Categoría</span>
+                    <span className="card-value" style={{ fontWeight: '700', color: 'var(--color-primary)' }}>{cat.categoria}</span>
+                  </div>
+                  <div className="card-row">
+                    <span className="card-label">Valor Hora</span>
+                    <span className="card-value" style={{ fontWeight: '600' }}>{formatCurrency(cat.valor_hora)}</span>
+                  </div>
+                  <div style={{ marginTop: '1rem' }}>
+                    <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => openModal(cat)}>
+                      <Edit2 size={16} /> Editar Categoría
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
