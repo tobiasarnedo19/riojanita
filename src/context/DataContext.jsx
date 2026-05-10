@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
 
+import gsap from 'gsap';
+
 export const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
@@ -17,6 +19,33 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     refreshData();
   }, []);
+
+  // Animación de carga GSAP
+  useEffect(() => {
+    if (globalLoading && empleados.length === 0) {
+      gsap.to(".loading-logo", { 
+        scale: 1.08, 
+        filter: "drop-shadow(0 15px 35px rgba(0,0,0,0.4)) brightness(1.1)",
+        duration: 1.2, 
+        repeat: -1, 
+        yoyo: true, 
+        ease: "power1.inOut" 
+      });
+      
+      gsap.to(".loading-dot", {
+        y: -15,
+        opacity: 1,
+        duration: 0.6,
+        repeat: -1,
+        yoyo: true,
+        stagger: {
+          each: 0.15,
+          from: "start"
+        },
+        ease: "power2.inOut"
+      });
+    }
+  }, [globalLoading, empleados]);
 
   const refreshData = async (silent = false) => {
     if (!silent) setGlobalLoading(true);
@@ -56,7 +85,11 @@ export const DataProvider = ({ children }) => {
       {globalLoading && empleados.length === 0 ? (
         <div className="loading-overlay">
           <img src="/logo.png" alt="Cargando" className="loading-logo" />
-          <p className="loading-text">Cargando sistema...</p>
+          <div className="loading-indicator">
+            <div className="loading-dot"></div>
+            <div className="loading-dot"></div>
+            <div className="loading-dot"></div>
+          </div>
         </div>
       ) : (
         children

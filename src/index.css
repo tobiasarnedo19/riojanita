@@ -143,21 +143,25 @@ button {
 
 .loading-logo {
   height: 180px;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
   filter: drop-shadow(0 10px 25px rgba(0,0,0,0.3));
-  animation: pulseLogo 2s infinite ease-in-out;
 }
 
-@keyframes pulseLogo {
-  0% { transform: scale(1); filter: drop-shadow(0 10px 25px rgba(0,0,0,0.3)) brightness(1); }
-  50% { transform: scale(1.08); filter: drop-shadow(0 15px 35px rgba(0,0,0,0.4)) brightness(1.1); }
-  100% { transform: scale(1); filter: drop-shadow(0 10px 25px rgba(0,0,0,0.3)) brightness(1); }
+.loading-indicator {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
 }
 
-.loading-text {
-  color: white;
-  font-weight: 700;
-  font-size: 1.4rem;
+.loading-dot {
+  width: 14px;
+  height: 14px;
+  background-color: white;
+  border-radius: 50%;
+  opacity: 0.3;
+  box-shadow: 0 0 15px rgba(255,255,255,0.4);
+}
   text-transform: uppercase;
   letter-spacing: 0.2em;
   opacity: 0.9;
