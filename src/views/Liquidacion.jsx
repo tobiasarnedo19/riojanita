@@ -477,7 +477,7 @@ export default function Liquidacion() {
                     <th>Adicionales</th>
                     <th>Total</th>
                     <th>Estado</th>
-                    <th>Acción</th>
+                    <th style={{ textAlign: 'center' }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -499,27 +499,29 @@ export default function Liquidacion() {
                           {liq.estado}
                         </span>
                       </td>
-                      <td style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        {liq.estado === 'PENDIENTE' && (
-                          <button className="btn btn-primary" style={{ fontSize: '0.65rem', padding: '4px 8px' }} 
-                            onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR ADMINISTRACION' })}>
-                            Aprobar Admin
-                          </button>
-                        )}
-                        {liq.estado === 'CONTROLADO POR ADMINISTRACION' && (
-                          <button className="btn btn-primary" style={{ backgroundColor: '#2563eb', fontSize: '0.65rem', padding: '4px 8px' }} 
-                            onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR GERENCIA' })}>
-                            Aprobar Gerencia
-                          </button>
-                        )}
-                        {liq.estado !== 'PENDIENTE' && (
-                          <button className="btn btn-secondary" style={{ padding: '4px', color: 'var(--color-primary)' }} title="Vista Previa Recibo" onClick={() => setPreviewLiq(liq)}>
-                            <Eye size={18} />
-                          </button>
-                        )}
-                        {liq.estado === 'CONTROLADO POR GERENCIA' && (
-                          <Check size={16} style={{ color: 'var(--color-success)' }} />
-                        )}
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
+                          {liq.estado === 'PENDIENTE' && (
+                            <button className="btn btn-primary" style={{ fontSize: '0.65rem', padding: '4px 8px', whiteSpace: 'nowrap' }} 
+                              onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR ADMINISTRACION' })}>
+                              Aprobar Admin
+                            </button>
+                          )}
+                          {liq.estado === 'CONTROLADO POR ADMINISTRACION' && (
+                            <button className="btn btn-primary" style={{ backgroundColor: '#2563eb', fontSize: '0.65rem', padding: '4px 8px', whiteSpace: 'nowrap' }} 
+                              onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR GERENCIA' })}>
+                              Aprobar Gerencia
+                            </button>
+                          )}
+                          {liq.estado !== 'PENDIENTE' && (
+                            <button className="btn btn-secondary" style={{ padding: '4px', color: 'var(--color-primary)' }} title="Vista Previa Recibo" onClick={() => setPreviewLiq(liq)}>
+                              <Eye size={18} />
+                            </button>
+                          )}
+                          {liq.estado === 'CONTROLADO POR GERENCIA' && (
+                            <Check size={16} style={{ color: 'var(--color-success)' }} />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
