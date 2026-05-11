@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { api } from '../services/api';
 import { generateReciboPDF, generatePlanillaPDF } from '../services/pdfService';
 import { DataContext } from '../context/DataContext';
@@ -142,6 +143,73 @@ export default function Liquidacion() {
   const [expandedRowUid, setExpandedRowUid] = useState(null);
 
   const tableRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const handleImportExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const timeToDecimal = (val) => {
+      let decimal;
+      if (typeof val === 'number') {
+        decimal = val < 1 ? val * 24 : val;
+      } else if (typeof val === 'string' && val.includes(':')) {
+        const [hours, minutes] = val.split(':').map(Number);
+        decimal = hours + (minutes / 60);
+      } else {
+        decimal = parseFloat(val) || 0;
+      }
+      return Math.round(decimal * 10) / 10;
+    };
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+
+        // data[0] son encabezados
+        // Buscamos legajo en col A (0) y horas en col F (5)
+        const newBorrador = [...borrador];
+        let count = 0;
+
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length < 2) continue;
+
+          const legajoExcel = String(row[0] || '').trim(); // Columna A
+          const horasExcelRaw = row[5]; // Columna F
+          const horasExcel = timeToDecimal(horasExcelRaw);
+
+          if (legajoExcel && !isNaN(horasExcel) && horasExcel > 0) {
+            const rowIndex = newBorrador.findIndex(b => {
+              const emp = allEmpleados.find(e => e.id === b.empleado);
+              return emp && String(emp.legajo || '').trim() === legajoExcel;
+            });
+
+            if (rowIndex !== -1) {
+              const b = newBorrador[rowIndex];
+              const total = (horasExcel * b.valor_hora) + b.feriados - b.vales_anticipos;
+              newBorrador[rowIndex] = { ...b, total_horas: horasExcel, total };
+              count++;
+            }
+          }
+        }
+
+        setBorrador(newBorrador);
+        setSuccessMsg(`Se importaron horas para ${count} empleados.`);
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError('Error al procesar el Excel. Asegúrate de que el formato sea correcto.');
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = null; // Reset para poder cargar el mismo archivo
+  };
 
   // Agrupar liquidaciones por planilla_id o timestamp
   const planillas = useMemo(() => {
@@ -734,7 +802,23 @@ export default function Liquidacion() {
             {borrador.length > 0 && (
               <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0 }}>Borrador de Liquidación</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>Borrador de Liquidación</h3>
+                    <button 
+                      className="btn btn-secondary" 
+                      style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                      onClick={() => fileInputRef.current.click()}
+                    >
+                      <Download size={14} style={{ transform: 'rotate(180deg)' }} /> Cargar Horas desde Excel
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      style={{ display: 'none' }} 
+                      accept=".xlsx, .xls"
+                      onChange={handleImportExcel}
+                    />
+                  </div>
                   <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
                     <Save size={18} /> {isSaving ? 'Guardando...' : 'Confirmar Liquidación'}
                   </button>
@@ -744,6 +828,7 @@ export default function Liquidacion() {
                   <table className="data-table" ref={tableRef}>
                     <thead>
                       <tr>
+                        <th>Legajo</th>
                         <th>Empleado</th>
                         <th>Valor Hora</th>
                         <th>Horas Trab.</th>
@@ -758,6 +843,7 @@ export default function Liquidacion() {
                         return (
                           <React.Fragment key={row.uid}>
                             <tr className="borrador-row" style={{ cursor: 'default' }}>
+                              <td>{allEmpleados.find(e => e.id === row.empleado)?.legajo || '-'}</td>
                               <td>{row.nombre}</td>
                               <td>{formatCurrency(row.valor_hora)}</td>
                               <td>

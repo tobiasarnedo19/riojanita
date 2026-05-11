@@ -18,13 +18,13 @@ export default function Empleados() {
   const [error, setError] = useState(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ id: '', nombre: '', dni: '', categoria: '', estado: 'ACTIVO' });
+  const [formData, setFormData] = useState({ id: '', legajo: '', nombre: '', dni: '', categoria: '', estado: 'ACTIVO' });
 
   const openModal = (emp = null) => {
     if (emp) {
       setFormData(emp);
     } else {
-      setFormData({ id: '', nombre: '', dni: '', categoria: '', estado: 'ACTIVO' });
+      setFormData({ id: '', legajo: '', nombre: '', dni: '', categoria: '', estado: 'ACTIVO' });
     }
     setIsModalOpen(true);
   };
@@ -86,6 +86,7 @@ export default function Empleados() {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th>Legajo</th>
                     <th>Nombre</th>
                     <th>DNI</th>
                     <th>Categoría</th>
@@ -95,6 +96,7 @@ export default function Empleados() {
                 <tbody>
                   {empleados.map(emp => (
                     <tr key={emp.id}>
+                      <td>{emp.legajo || '-'}</td>
                       <td>{emp.nombre}</td>
                       <td>{emp.dni}</td>
                       <td>{getCatName(emp.categoria)}</td>
@@ -116,8 +118,12 @@ export default function Empleados() {
               {empleados.map(emp => (
                 <div key={emp.id} className="card-item">
                   <div className="card-row">
+                    <span className="card-label">Legajo</span>
+                    <span className="card-value" style={{ fontWeight: '700' }}>{emp.legajo || '-'}</span>
+                  </div>
+                  <div className="card-row">
                     <span className="card-label">Nombre</span>
-                    <span className="card-value" style={{ fontWeight: '700' }}>{emp.nombre}</span>
+                    <span className="card-value">{emp.nombre}</span>
                   </div>
                   <div className="card-row">
                     <span className="card-label">DNI</span>
@@ -150,6 +156,13 @@ export default function Empleados() {
               <button className="btn close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
             </div>
             <form onSubmit={handleSave}>
+              <div className="form-group">
+                <label>Legajo</label>
+                <input 
+                  type="text" className="input-control" 
+                  value={formData.legajo} onChange={e => setFormData({...formData, legajo: e.target.value})}
+                />
+              </div>
               <div className="form-group">
                 <label>Nombre Completo</label>
                 <input 
