@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import { DataContext } from '../context/DataContext';
 import { formatCurrency } from '../utils/formatters';
 import '../components/ui/ui.css';
-import { Plus, CheckCircle } from 'lucide-react';
+import { Plus, CheckCircle, Search, Users } from 'lucide-react';
 
 export default function Novedades() {
   const { 
@@ -19,20 +19,34 @@ export default function Novedades() {
   const [error, setError] = useState(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ id: '', fecha: '', empleado: '', monto: '', tipo: 'VALE', estado: 'PENDIENTE' });
+  const [formData, setFormData] = useState({ id: '', fecha: '', empleados: [], monto: '', tipo: 'VALE', estado: 'PENDIENTE', observaciones: '' });
+  const [searchTerm, setSearchTerm] = useState('');
 
   const openModal = () => {
     const today = new Date().toISOString().split('T')[0];
-    setFormData({ id: '', fecha: today, empleado: '', monto: '', tipo: 'VALE', estado: 'PENDIENTE' });
+    setFormData({ id: '', fecha: today, empleados: [], monto: '', tipo: 'VALE', estado: 'PENDIENTE', observaciones: '' });
+    setSearchTerm('');
     setIsModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (formData.empleados.length === 0) {
+      setError('Debe seleccionar al menos un empleado');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      await api.create('Novedades', formData);
+      const records = formData.empleados.map(empId => ({
+        ...formData,
+        empleado: empId, // Convert back to single employee for the record
+        empleados: undefined, // Remove the array
+        id: '' // Ensure new ID for each
+      }));
+
+      await api.createBulk('Novedades', records);
       setIsModalOpen(false);
       await refreshData();
     } catch (err) {
@@ -89,6 +103,7 @@ export default function Novedades() {
                 <th>Empleado</th>
                 <th>Tipo</th>
                 <th>Monto ($)</th>
+                <th>Observaciones</th>
                 <th>Estado</th>
               </tr>
             </thead>
@@ -106,6 +121,7 @@ export default function Novedades() {
                     </span>
                   </td>
                   <td style={{ fontWeight: '600' }}>{formatCurrency(nov.monto)}</td>
+                  <td style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>{nov.observaciones || '-'}</td>
                   <td>
                     {nov.estado === 'PAGADO' ? (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-success)' }}>
@@ -137,18 +153,72 @@ export default function Novedades() {
                   value={formData.fecha} onChange={e => setFormData({...formData, fecha: e.target.value})}
                 />
               </div>
+
               <div className="form-group">
-                <label>Empleado</label>
-                <select 
-                  required className="input-control" 
-                  value={formData.empleado} onChange={e => setFormData({...formData, empleado: e.target.value})}
-                >
-                  <option value="" disabled>Seleccione...</option>
-                  {empleados.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.nombre}</option>
-                  ))}
-                </select>
+                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Seleccionar Empleados ({formData.empleados.length})</span>
+                  <button 
+                    type="button" 
+                    style={{ fontSize: '0.8rem', background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 'bold' }}
+                    onClick={() => {
+                      if (formData.empleados.length === empleados.length) {
+                        setFormData({...formData, empleados: []});
+                      } else {
+                        setFormData({...formData, empleados: empleados.map(e => e.id)});
+                      }
+                    }}
+                  >
+                    {formData.empleados.length === empleados.length ? 'Desmarcar todos' : 'Marcar todos'}
+                  </button>
+                </label>
+                
+                <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
+                  <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Buscar empleado..." 
+                    className="input-control"
+                    style={{ paddingLeft: '32px' }}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ 
+                  maxHeight: '200px', 
+                  overflowY: 'auto', 
+                  border: '1px solid var(--color-border)', 
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.5rem'
+                }}>
+                  {empleados
+                    .filter(e => e.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map(emp => (
+                      <label key={emp.id} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '10px', 
+                        padding: '6px 8px',
+                        cursor: 'pointer',
+                        borderRadius: '4px',
+                        backgroundColor: formData.empleados.includes(emp.id) ? 'rgba(211, 47, 47, 0.05)' : 'transparent'
+                      }}>
+                        <input 
+                          type="checkbox" 
+                          checked={formData.empleados.includes(emp.id)}
+                          onChange={e => {
+                            const newSelected = e.target.checked 
+                              ? [...formData.empleados, emp.id]
+                              : formData.empleados.filter(id => id !== emp.id);
+                            setFormData({...formData, empleados: newSelected});
+                          }}
+                        />
+                        <span style={{ fontSize: '0.9rem' }}>{emp.nombre}</span>
+                      </label>
+                    ))}
+                </div>
               </div>
+
               <div className="form-group">
                 <label>Tipo de Novedad</label>
                 <select 
@@ -160,6 +230,7 @@ export default function Novedades() {
                   <option value="FERIADO">Feriado (Suma)</option>
                 </select>
               </div>
+
               <div className="form-group">
                 <label>Monto ($)</label>
                 <input 
@@ -167,10 +238,21 @@ export default function Novedades() {
                   value={formData.monto} onChange={e => setFormData({...formData, monto: e.target.value})}
                 />
               </div>
+
+              <div className="form-group">
+                <label>Observaciones</label>
+                <textarea 
+                  className="input-control" 
+                  style={{ minHeight: '80px', resize: 'vertical' }}
+                  placeholder="Detalles adicionales..."
+                  value={formData.observaciones} onChange={e => setFormData({...formData, observaciones: e.target.value})}
+                />
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancelar</button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Guardando...' : 'Guardar'}
+                  {loading ? 'Guardando...' : `Guardar (${formData.empleados.length})`}
                 </button>
               </div>
             </form>

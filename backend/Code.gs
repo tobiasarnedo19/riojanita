@@ -21,6 +21,9 @@ function doPost(e) {
     if (action === "create" || action === "update") {
       const result = saveRecord(body.table, body.data, action);
       return jsonResponse({ success: true, data: result });
+    } else if (action === "create_bulk") {
+      const result = saveRecordsBulk(body.table, body.data);
+      return jsonResponse({ success: true, data: result });
     } else if (action === "liquidar") {
       const result = processLiquidacion(body.data);
       return jsonResponse({ success: true, message: result });
@@ -117,6 +120,28 @@ function saveRecord(sheetName, recordData, action) {
     }
     throw new Error("No se encontró registro con ID: " + recordData.id);
   }
+}
+
+function saveRecordsBulk(sheetName, recordsArray) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) throw new Error("No se encontró la hoja: " + sheetName);
+  
+  const headers = sheet.getDataRange().getValues()[0];
+  const newRows = [];
+  
+  recordsArray.forEach(recordData => {
+    if (!recordData.id) {
+       recordData.id = Utilities.getUuid();
+    }
+    const newRow = headers.map(h => recordData[h] !== undefined ? recordData[h] : "");
+    newRows.push(newRow);
+  });
+  
+  if (newRows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, headers.length).setValues(newRows);
+  }
+  
+  return recordsArray;
 }
 
 function processLiquidacion(payload) {

@@ -1,7 +1,7 @@
 // ============================================================================
 // CONFIGURACIÓN: REEMPLAZA ESTA URL POR LA URL DE TU WEB APP DE APPS SCRIPT
 // ============================================================================
-export const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5KMlW8MNFT2b73zSBxpKqea9dNoyxnT66MjU0AG9g5anJM89IytOOlCyjBRAazCgw/exec";
+export const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybYdogcz-MzbKmlK2jJmSj_ESQKvSJtcYwCPRu5_wvFE4Qgw4sjn8kSPngNnd43iyZ/exec";
 
 export const api = {
   get: async (table) => {
@@ -37,6 +37,10 @@ export const api = {
 
   create: async (table, data) => {
     return api.post({ action: "create", table, data });
+  },
+
+  createBulk: async (table, data) => {
+    return api.post({ action: "create_bulk", table, data });
   },
 
   update: async (table, data) => {
