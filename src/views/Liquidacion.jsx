@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { api } from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 import { generateReciboPDF, generatePlanillaPDF } from '../services/pdfService';
 import { DataContext } from '../context/DataContext';
 import { formatCurrency, formatReceiptAmount } from '../utils/formatters';
@@ -119,6 +120,8 @@ export default function Liquidacion() {
     refreshData
   } = useContext(DataContext);
 
+  const { user } = useContext(AuthContext);
+
   // Filtrar activos/pendientes solo para la vista
   const empleados = allEmpleados.filter(e => e.estado === 'ACTIVO');
   const novedades = allNovedades.filter(n => n.estado === 'PENDIENTE');
@@ -232,8 +235,8 @@ export default function Liquidacion() {
       const currentStatus = liq.estado;
       if (currentStatus === 'PENDIENTE') {
         groups[key].estado = 'PENDIENTE';
-      } else if (currentStatus === 'CONTROLADO POR ADMINISTRACION' && groups[key].estado !== 'PENDIENTE') {
-        groups[key].estado = 'CONTROLADO POR ADMINISTRACION';
+      } else if (currentStatus === 'CONTROLADO POR FINANZAS' && groups[key].estado !== 'PENDIENTE') {
+        groups[key].estado = 'CONTROLADO POR FINANZAS';
       }
     });
     return Object.values(groups);
@@ -470,6 +473,30 @@ export default function Liquidacion() {
     }
   };
 
+  const handleApproveAllGerencia = async () => {
+    if (!selectedPlanilla || user?.role !== 'GERENCIA') return;
+    
+    const toApprove = selectedPlanilla.empleados.filter(l => l.estado !== 'CONTROLADO POR GERENCIA');
+    if (toApprove.length === 0) return;
+
+    if (!window.confirm(`¿Estás seguro que deseas aprobar las ${toApprove.length} liquidaciones de esta planilla?`)) return;
+
+    setIsSaving(true);
+    try {
+      const data = toApprove.map(l => ({ id: l.id, estado: 'CONTROLADO POR GERENCIA' }));
+      await api.updateBulk('Liquidaciones', data);
+      await refreshData(true);
+      
+      const updatedLiqs = selectedPlanilla.empleados.map(l => ({ ...l, estado: 'CONTROLADO POR GERENCIA' }));
+      setSelectedPlanilla({ ...selectedPlanilla, empleados: updatedLiqs });
+    } catch (err) {
+      console.error(err);
+      alert('Error al aprobar todas las liquidaciones.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDownloadPDF = (liq) => {
     const empName = getEmpName(liq.empelado);
     generateReciboPDF(liq, empName);
@@ -537,8 +564,8 @@ export default function Liquidacion() {
                       <td style={{ fontWeight: 'bold' }}>{formatCurrency(p.total)}</td>
                       <td>
                         <span className="status-badge" style={{ 
-                          backgroundColor: p.estado === 'PENDIENTE' ? '#fef3c7' : p.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
-                          color: p.estado === 'PENDIENTE' ? '#d97706' : p.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
+                          backgroundColor: p.estado === 'PENDIENTE' ? '#fef3c7' : p.estado === 'CONTROLADO POR FINANZAS' ? '#dbeafe' : '#dcfce7',
+                          color: p.estado === 'PENDIENTE' ? '#d97706' : p.estado === 'CONTROLADO POR FINANZAS' ? '#1e40af' : '#15803d'
                         }}>
                           {p.estado}
                         </span>
@@ -575,8 +602,8 @@ export default function Liquidacion() {
                   <div className="card-row">
                     <span className="card-label">Estado</span>
                     <span className="status-badge" style={{ 
-                      backgroundColor: p.estado === 'PENDIENTE' ? '#fef3c7' : p.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
-                      color: p.estado === 'PENDIENTE' ? '#d97706' : p.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
+                      backgroundColor: p.estado === 'PENDIENTE' ? '#fef3c7' : p.estado === 'CONTROLADO POR FINANZAS' ? '#dbeafe' : '#dcfce7',
+                      color: p.estado === 'PENDIENTE' ? '#d97706' : p.estado === 'CONTROLADO POR FINANZAS' ? '#1e40af' : '#15803d'
                     }}>
                       {p.estado}
                     </span>
@@ -605,9 +632,22 @@ export default function Liquidacion() {
                 <h2 style={{ margin: 0 }}>Detalle de Planilla</h2>
                 <small style={{ color: 'var(--color-text-muted)' }}>{selectedPlanilla.periodo} | Generado: {formatDate(selectedPlanilla.timestamp)}</small>
               </div>
-              <button className="btn close-btn" onClick={() => setSelectedPlanilla(null)}>
-                <X size={24} />
-              </button>
+
+              <div style={{ flexGrow: 1, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total a Liquidar</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-primary)' }}>{formatCurrency(selectedPlanilla.total)}</div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                {user?.role === 'GERENCIA' && selectedPlanilla.empleados.some(l => l.estado !== 'CONTROLADO POR GERENCIA') && (
+                  <button className="btn btn-primary" onClick={handleApproveAllGerencia} disabled={isSaving}>
+                    <CheckSquare size={18} /> Aprobar Todo
+                  </button>
+                )}
+                <button className="btn close-btn" onClick={() => setSelectedPlanilla(null)}>
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
             <div style={{ marginTop: '1rem' }}>
@@ -637,21 +677,21 @@ export default function Liquidacion() {
                         <td style={{ fontWeight: 'bold' }}>{formatCurrency(liq.total)}</td>
                         <td>
                           <span className="status-badge" style={{ 
-                            backgroundColor: liq.estado === 'PENDIENTE' ? '#fef3c7' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
-                            color: liq.estado === 'PENDIENTE' ? '#d97706' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
+                            backgroundColor: liq.estado === 'PENDIENTE' ? '#fef3c7' : liq.estado === 'CONTROLADO POR FINANZAS' ? '#dbeafe' : '#dcfce7',
+                            color: liq.estado === 'PENDIENTE' ? '#d97706' : liq.estado === 'CONTROLADO POR FINANZAS' ? '#1e40af' : '#15803d'
                           }}>
                             {liq.estado}
                           </span>
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
-                            {liq.estado === 'PENDIENTE' && (
+                            {liq.estado === 'PENDIENTE' && ['GERENCIA', 'FINANZAS'].includes(user?.role) && (
                               <button className="btn btn-primary" style={{ fontSize: '0.65rem', padding: '4px 8px', whiteSpace: 'nowrap' }} 
-                                onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR ADMINISTRACION' })}>
-                                Aprobar Admin
+                                onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR FINANZAS' })}>
+                                Aprobar Finanzas
                               </button>
                             )}
-                            {liq.estado === 'CONTROLADO POR ADMINISTRACION' && (
+                            {liq.estado === 'CONTROLADO POR FINANZAS' && user?.role === 'GERENCIA' && (
                               <button className="btn btn-primary" style={{ backgroundColor: '#2563eb', fontSize: '0.65rem', padding: '4px 8px', whiteSpace: 'nowrap' }} 
                                 onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR GERENCIA' })}>
                                 Aprobar Gerencia
@@ -698,20 +738,20 @@ export default function Liquidacion() {
                     <div className="card-row">
                       <span className="card-label">Estado</span>
                       <span className="status-badge" style={{ 
-                        backgroundColor: liq.estado === 'PENDIENTE' ? '#fef3c7' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#dbeafe' : '#dcfce7',
-                        color: liq.estado === 'PENDIENTE' ? '#d97706' : liq.estado === 'CONTROLADO POR ADMINISTRACION' ? '#1e40af' : '#15803d'
+                        backgroundColor: liq.estado === 'PENDIENTE' ? '#fef3c7' : liq.estado === 'CONTROLADO POR FINANZAS' ? '#dbeafe' : '#dcfce7',
+                        color: liq.estado === 'PENDIENTE' ? '#d97706' : liq.estado === 'CONTROLADO POR FINANZAS' ? '#1e40af' : '#15803d'
                       }}>
                         {liq.estado}
                       </span>
                     </div>
                     <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                      {liq.estado === 'PENDIENTE' && (
+                      {liq.estado === 'PENDIENTE' && ['GERENCIA', 'FINANZAS'].includes(user?.role) && (
                         <button className="btn btn-primary" style={{ flex: 1 }} 
-                          onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR ADMINISTRACION' })}>
-                          Aprobar Admin
+                          onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR FINANZAS' })}>
+                          Aprobar Finanzas
                         </button>
                       )}
-                      {liq.estado === 'CONTROLADO POR ADMINISTRACION' && (
+                      {liq.estado === 'CONTROLADO POR FINANZAS' && user?.role === 'GERENCIA' && (
                         <button className="btn btn-primary" style={{ flex: 1, backgroundColor: '#2563eb' }} 
                           onClick={() => setApprovalModal({ open: true, liq: liq, nextStatus: 'CONTROLADO POR GERENCIA' })}>
                           Aprobar Gerencia

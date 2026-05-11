@@ -47,6 +47,10 @@ export const api = {
     return api.post({ action: "update", table, data });
   },
 
+  updateBulk: async (table, data) => {
+    return api.post({ action: "update_bulk", table, data });
+  },
+
   liquidar: async (liquidaciones, novedadesUsadasIds) => {
     return api.post({
       action: "liquidar",

@@ -31,6 +31,11 @@ export default function Categorias() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    if (user?.role !== 'GERENCIA') {
+      setError('No tienes permisos para realizar esta acción.');
+      setLoading(false);
+      return;
+    }
     try {
       const dataToSave = { ...formData, responsable: user?.username || 'Administrador' };
       if (formData.id) {
@@ -68,9 +73,11 @@ export default function Categorias() {
           <button className="btn btn-secondary" onClick={() => setIsHistoryOpen(true)}>
             <History size={18} /> <span className="hidden-mobile">Ver Historial</span>
           </button>
-          <button className="btn btn-primary" onClick={() => openModal()}>
-            <Plus size={18} /> <span className="hidden-mobile">Nueva Categoría</span>
-          </button>
+          {user?.role === 'GERENCIA' && (
+            <button className="btn btn-primary" onClick={() => openModal()}>
+              <Plus size={18} /> <span className="hidden-mobile">Nueva Categoría</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -96,9 +103,11 @@ export default function Categorias() {
                       <td>{cat.categoria}</td>
                       <td style={{ fontWeight: '600' }}>{formatCurrency(cat.valor_hora)}</td>
                       <td>
-                        <button className="btn btn-secondary" onClick={() => openModal(cat)}>
-                          <Edit2 size={16} /> Editar
-                        </button>
+                        {user?.role === 'GERENCIA' && (
+                          <button className="btn btn-secondary" onClick={() => openModal(cat)}>
+                            <Edit2 size={16} /> Editar
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -117,11 +126,13 @@ export default function Categorias() {
                     <span className="card-label">Valor Hora</span>
                     <span className="card-value" style={{ fontWeight: '600' }}>{formatCurrency(cat.valor_hora)}</span>
                   </div>
-                  <div style={{ marginTop: '1rem' }}>
-                    <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => openModal(cat)}>
-                      <Edit2 size={16} /> Editar Categoría
-                    </button>
-                  </div>
+                  {user?.role === 'GERENCIA' && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => openModal(cat)}>
+                        <Edit2 size={16} /> Editar Categoría
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
