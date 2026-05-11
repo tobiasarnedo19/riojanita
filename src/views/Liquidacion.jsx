@@ -5,7 +5,7 @@ import { DataContext } from '../context/DataContext';
 import { formatCurrency, formatReceiptAmount } from '../utils/formatters';
 import gsap from 'gsap';
 import '../components/ui/ui.css';
-import { Save, Trash2, CheckSquare, Plus, X, ArrowRight, Eye, Check, FileDown, FileText, Download } from 'lucide-react';
+import { Save, Trash2, CheckSquare, Plus, X, ArrowRight, Eye, Check, FileDown, FileText, Download, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Componente para la Vista Previa del Recibo Individual (Estilo Ticket 6x4)
 const ReciboPreview = ({ liq, empName, onDownload, onClose }) => {
@@ -139,6 +139,7 @@ export default function Liquidacion() {
   const [fechaHasta, setFechaHasta] = useState('');
   const [selectedEmpleados, setSelectedEmpleados] = useState([]);
   const [borrador, setBorrador] = useState([]);
+  const [expandedRowUid, setExpandedRowUid] = useState(null);
 
   const tableRef = useRef(null);
 
@@ -201,14 +202,20 @@ export default function Liquidacion() {
     let feriados = 0;
     let vales_anticipos = 0;
     let idsUsados = [];
+    let novedadesDetalle = [];
+
     empNovs.forEach(n => {
       const monto = parseFloat(n.monto) || 0;
       const tipoNormalizado = String(n.tipo).toUpperCase();
-      if (tipoNormalizado === 'FERIADO') feriados += monto;
-      if (tipoNormalizado === 'VALE' || tipoNormalizado === 'ANTICIPO') vales_anticipos += monto;
+      if (tipoNormalizado === 'FERIADO') {
+        feriados += monto;
+      } else if (tipoNormalizado === 'VALE' || tipoNormalizado === 'ANTICIPO') {
+        vales_anticipos += monto;
+        novedadesDetalle.push(n);
+      }
       idsUsados.push(n.id);
     });
-    return { feriados, vales_anticipos, idsUsados };
+    return { feriados, vales_anticipos, idsUsados, novedadesDetalle };
   };
 
   const toggleEmpleado = (empId) => {
@@ -248,7 +255,7 @@ export default function Liquidacion() {
     selectedEmpleados.forEach(empId => {
       const emp = empleados.find(x => x.id === empId);
       const valor_hora = getCatValue(emp.categoria);
-      const { feriados, vales_anticipos, idsUsados } = getNovedadesCalc(empId, fechaDesde, fechaHasta);
+      const { feriados, vales_anticipos, idsUsados, novedadesDetalle } = getNovedadesCalc(empId, fechaDesde, fechaHasta);
 
       newBorrador.push({
         uid: Math.random().toString(),
@@ -260,6 +267,8 @@ export default function Liquidacion() {
         vales_anticipos,
         total: feriados - vales_anticipos,
         novedadesIds: idsUsados,
+        novedadesDetalle,
+        novedadesSeleccionadas: novedadesDetalle.map(n => n.id),
         estado: 'PENDIENTE',
         f_desde: fechaDesde,
         f_hasta: fechaHasta
@@ -282,6 +291,35 @@ export default function Liquidacion() {
 
   const removeRow = (uid) => {
     setBorrador(borrador.filter(b => b.uid !== uid));
+    if (expandedRowUid === uid) setExpandedRowUid(null);
+  };
+
+  const handleToggleNovedad = (rowUid, novId) => {
+    setBorrador(prev => prev.map(row => {
+      if (row.uid === rowUid) {
+        let newSeleccionadas;
+        if (row.novedadesSeleccionadas.includes(novId)) {
+          newSeleccionadas = row.novedadesSeleccionadas.filter(id => id !== novId);
+        } else {
+          newSeleccionadas = [...row.novedadesSeleccionadas, novId];
+        }
+
+        // Recalcular vales_anticipos sumando solo las seleccionadas
+        const newVales = row.novedadesDetalle
+          .filter(n => newSeleccionadas.includes(n.id))
+          .reduce((sum, n) => sum + (parseFloat(n.monto) || 0), 0);
+
+        const newTotal = (row.total_horas * row.valor_hora) + row.feriados - newVales;
+
+        return { 
+          ...row, 
+          novedadesSeleccionadas: newSeleccionadas, 
+          vales_anticipos: newVales,
+          total: newTotal 
+        };
+      }
+      return row;
+    }));
   };
 
   const handleSave = async () => {
@@ -311,7 +349,12 @@ export default function Liquidacion() {
 
       let allNovIds = [];
       borrador.forEach(b => {
-        allNovIds = [...allNovIds, ...b.novedadesIds];
+        // IDs de feriados (siempre se incluyen si están en el rango)
+        const feriadosIds = b.novedadesIds.filter(id => {
+          const nov = novedades.find(n => n.id === id);
+          return nov && String(nov.tipo).toUpperCase() === 'FERIADO';
+        });
+        allNovIds = [...allNovIds, ...feriadosIds, ...b.novedadesSeleccionadas];
       });
 
       await api.liquidar(payloadLiq, allNovIds);
@@ -711,30 +754,107 @@ export default function Liquidacion() {
                       </tr>
                     </thead>
                     <tbody>
-                      {borrador.map((row, index) => (
-                        <tr key={row.uid} className="borrador-row">
-                          <td>{row.nombre}</td>
-                          <td>{formatCurrency(row.valor_hora)}</td>
-                          <td>
-                            <input 
-                              type="number" className="input-control" style={{ width: '80px', padding: '0.25rem 0.5rem' }}
-                              value={row.total_horas} onChange={e => handleHorasChange(row.uid, e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  const inputs = tableRef.current.querySelectorAll('input[type="number"]');
-                                  if (inputs[index + 1]) { inputs[index + 1].focus(); inputs[index + 1].select(); }
-                                }
-                              }}
-                              min="0" step="0.5"
-                            />
-                          </td>
-                          <td style={{ color: 'var(--color-success)', fontWeight: '500' }}>+{formatCurrency(row.feriados)}</td>
-                          <td style={{ color: 'var(--color-danger)', fontWeight: '500' }}>-{formatCurrency(row.vales_anticipos)}</td>
-                          <td style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{formatCurrency(row.total)}</td>
-                          <td><button className="btn" style={{ color: 'var(--color-danger)', padding: '0.25rem' }} onClick={() => removeRow(row.uid)}><Trash2 size={18} /></button></td>
-                        </tr>
-                      ))}
+                      {borrador.map((row, index) => {
+                        return (
+                          <React.Fragment key={row.uid}>
+                            <tr className="borrador-row" style={{ cursor: 'default' }}>
+                              <td>{row.nombre}</td>
+                              <td>{formatCurrency(row.valor_hora)}</td>
+                              <td>
+                                <input 
+                                  type="number" className="input-control" style={{ width: '80px', padding: '0.25rem 0.5rem' }}
+                                  value={row.total_horas} onChange={e => handleHorasChange(row.uid, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      const inputs = tableRef.current.querySelectorAll('input[type="number"]');
+                                      if (inputs[index + 1]) { inputs[index + 1].focus(); inputs[index + 1].select(); }
+                                    }
+                                  }}
+                                  min="0" step="0.5"
+                                />
+                              </td>
+                              <td style={{ color: 'var(--color-success)', fontWeight: '500' }}>+{formatCurrency(row.feriados)}</td>
+                              <td 
+                                style={{ color: 'var(--color-danger)', fontWeight: '500', cursor: row.novedadesDetalle.length > 0 ? 'pointer' : 'default', position: 'relative' }}
+                                onClick={() => {
+                                  if (row.novedadesDetalle.length > 0) {
+                                    setExpandedRowUid(expandedRowUid === row.uid ? null : row.uid);
+                                  }
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  -{formatCurrency(row.vales_anticipos)}
+                                  {row.novedadesDetalle.length > 0 && (
+                                    expandedRowUid === row.uid ? <ChevronUp size={14} opacity={0.6} /> : <ChevronDown size={14} opacity={0.6} />
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{formatCurrency(row.total)}</td>
+                              <td>
+                                <button className="btn" style={{ color: 'var(--color-danger)', padding: '0.25rem' }} onClick={() => removeRow(row.uid)}>
+                                  <Trash2 size={18} />
+                                </button>
+                              </td>
+                            </tr>
+                            
+                            {/* FILA EXPANDIBLE DE DETALLES */}
+                            {expandedRowUid === row.uid && (
+                              <tr className="expansion-row">
+                                <td colSpan="7" style={{ padding: '0', border: 'none' }}>
+                                  <div 
+                                    className="expansion-content"
+                                    style={{ 
+                                      backgroundColor: '#f8fafc', 
+                                      padding: '1rem 2rem', 
+                                      borderBottom: '1px solid var(--color-border)',
+                                      overflow: 'hidden'
+                                    }}
+                                    ref={el => {
+                                      if (el) {
+                                        gsap.fromTo(el, { height: 0, opacity: 0 }, { height: 'auto', opacity: 1, duration: 0.3, ease: 'power2.out' });
+                                      }
+                                    }}
+                                  >
+                                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em' }}>
+                                      Desglose de Vales y Anticipos
+                                    </h4>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                                      {row.novedadesDetalle.map(nov => (
+                                        <label key={nov.id} style={{ 
+                                          display: 'flex', alignItems: 'center', gap: '0.75rem', 
+                                          backgroundColor: 'white', padding: '0.5rem 0.75rem', 
+                                          borderRadius: '6px', border: '1px solid #e2e8f0', 
+                                          cursor: 'pointer', transition: 'all 0.2s',
+                                          boxShadow: row.novedadesSeleccionadas.includes(nov.id) ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                                          opacity: row.novedadesSeleccionadas.includes(nov.id) ? 1 : 0.6
+                                        }}>
+                                          <input 
+                                            type="checkbox" 
+                                            checked={row.novedadesSeleccionadas.includes(nov.id)} 
+                                            onChange={() => handleToggleNovedad(row.uid, nov.id)}
+                                            style={{ width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
+                                          />
+                                          <div style={{ fontSize: '0.9rem' }}>
+                                            <span style={{ fontWeight: '600', color: '#334155' }}>{formatDate(nov.fecha)}</span>
+                                            <span style={{ margin: '0 0.5rem', color: '#94a3b8' }}>|</span>
+                                            <span style={{ color: nov.tipo.toUpperCase() === 'VALE' ? '#0891b2' : '#7c3aed', fontWeight: '500', fontSize: '0.8rem' }}>
+                                              {nov.tipo.toUpperCase()}
+                                            </span>
+                                            <span style={{ marginLeft: '0.75rem', fontWeight: '700', color: 'var(--color-danger)' }}>
+                                              {formatCurrency(nov.monto)}
+                                            </span>
+                                          </div>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
